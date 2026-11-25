@@ -1,6 +1,7 @@
 import { readTranscriptSelection, popupViewportCorrection } from '../transcriptSelection';
 import { hintProps } from '../surfaceHints';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { isNearScrollBottom } from '../../shared/scrollFollow';
 import type { TranscriptSegment } from '../../shared/transcript';
 import { useT } from '../i18n';
 
@@ -41,14 +42,17 @@ export function TranscriptPanel({
   const [stick, setStick] = useState(true);
   const [sel, setSel] = useState<SelPopup | null>(null);
 
-  useEffect(() => {
-    if (stick && boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight;
-  }, [segments, stick]);
+  // Follow both finalized bubbles and the live partial. Waiting for the final
+  // segment leaves the growing question hidden once the pane is full.
+  useLayoutEffect(() => {
+    const el = boxRef.current;
+    if (stick && el) el.scrollTop = el.scrollHeight;
+  }, [segments, partials?.them, partials?.me, stick]);
 
   const onScroll = () => {
     const el = boxRef.current;
     if (!el) return;
-    setStick(el.scrollHeight - el.scrollTop - el.clientHeight < 48);
+    setStick(isNearScrollBottom(el.scrollHeight, el.scrollTop, el.clientHeight));
     setSel(null);
   };
 

@@ -10,6 +10,7 @@
 import { readFileSync, writeFileSync, renameSync, mkdirSync, existsSync } from 'fs';
 import { dirname } from 'path';
 import type {
+  AutoConversationSettings,
   OnboardingCompletePayload,
   OnboardingProgressPatch,
   OnboardingState,
@@ -24,6 +25,7 @@ import { migrateDeepSeekModel } from '../shared/deepseek';
 import { defaultHotkeysForPlatform } from '../shared/platform';
 import { providerIdForEndpoint } from '../shared/providerCatalog';
 import { OPACITY_DEFAULT, OPACITY_LEGACY_UNUSED, clampOpacity } from '../shared/opacity';
+import { DEFAULT_AUTO_CONVERSATION } from '../shared/autoConversation';
 
 export interface SecretCipher {
   available(): boolean;
@@ -93,7 +95,9 @@ export function defaultSettings(platform: string = process.platform): SettingsFi
     },
     audio: {
       micEnabled: false,
+      micInputMode: 'self',
     },
+    autoConversation: { ...DEFAULT_AUTO_CONVERSATION },
   };
 }
 
@@ -109,6 +113,26 @@ function normalizeRagSettings(raw: unknown): { enabled: boolean; rootPath?: stri
   const rootPath = typeof value.rootPath === 'string' && !value.rootPath.includes('\0')
     ? value.rootPath.trim() : '';
   return { enabled: value.enabled === true, ...(rootPath ? { rootPath } : {}) };
+}
+
+function normalizeAutoConversation(raw: unknown, defaults: AutoConversationSettings): AutoConversationSettings {
+  const value = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
+  const stableDelayMs = typeof value.stableDelayMs === 'number' && Number.isFinite(value.stableDelayMs)
+    ? Math.min(5000, Math.max(300, Math.round(value.stableDelayMs)))
+    : defaults.stableDelayMs;
+  const minChars = typeof value.minChars === 'number' && Number.isFinite(value.minChars)
+    ? Math.min(200, Math.max(1, Math.round(value.minChars)))
+    : defaults.minChars;
+  return {
+    autoTranslateIncoming: typeof value.autoTranslateIncoming === 'boolean'
+      ? value.autoTranslateIncoming : defaults.autoTranslateIncoming,
+    autoReplyIncoming: typeof value.autoReplyIncoming === 'boolean'
+      ? value.autoReplyIncoming : defaults.autoReplyIncoming,
+    replyTrigger: value.replyTrigger === 'questionsOnly' || value.replyTrigger === 'allIncoming'
+      ? value.replyTrigger : defaults.replyTrigger,
+    stableDelayMs,
+    minChars,
+  };
 }
 
 function validateRagPatch(raw: unknown): void {
@@ -141,7 +165,15 @@ function mergeWithDefaults(raw: Partial<SettingsFile>, defaults: SettingsFile): 
       localRealtime: { ...defaults.asr.localRealtime, ...raw.asr?.localRealtime },
     },
     ui: { ...defaults.ui, ...raw.ui, stealth: typeof raw.ui?.stealth === 'boolean' ? raw.ui.stealth : true, opacity: normalizeStoredOpacity(raw.ui?.opacity) },
-    audio: { ...defaults.audio, ...raw.audio },
+    audio: {
+      ...defaults.audio,
+      ...raw.audio,
+      micInputMode: raw.audio?.micInputMode === 'phone-speaker' ? 'phone-speaker' : 'self',
+    },
+    autoConversation: normalizeAutoConversation(
+      raw.autoConversation,
+      defaults.autoConversation ?? DEFAULT_AUTO_CONVERSATION,
+    ),
   };
 }
 
@@ -380,6 +412,12 @@ export class SettingsStore {
       Object.assign(this.data.ui, ui);
     }
     if (patch.audio) Object.assign(this.data.audio, stripUndefined(patch.audio));
+    if (patch.autoConversation) {
+      this.data.autoConversation = normalizeAutoConversation(
+        { ...this.data.autoConversation, ...stripUndefined(patch.autoConversation) },
+        this.data.autoConversation ?? DEFAULT_AUTO_CONVERSATION,
+      );
+    }
     try { this.save(); } catch (error) {
       // Both preference IPC routes share this boundary: failed saves must not
       // leave an unacknowledged next-launch choice in memory for a later save.
@@ -498,7 +536,9 @@ export class SettingsStore {
         themDeviceId: d.audio.themDeviceId,
         micEnabled: d.audio.micEnabled,
         micDeviceId: d.audio.micDeviceId,
+        micInputMode: d.audio.micInputMode === 'phone-speaker' ? 'phone-speaker' : 'self',
       },
+      autoConversation: normalizeAutoConversation(d.autoConversation, DEFAULT_AUTO_CONVERSATION),
     };
   }
 

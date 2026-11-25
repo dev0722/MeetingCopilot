@@ -104,6 +104,49 @@ describe('SettingsStore', () => {
     expect(s.data.llm.answerWithVision).toBe(true);
   });
 
+  it('defaults phone-input automation and round-trips its persisted policy', () => {
+    const s = new SettingsStore(file, fakeCipher);
+    expect(s.getPublic().audio.micInputMode).toBe('self');
+    expect(s.getPublic().autoConversation).toEqual({
+      autoTranslateIncoming: true,
+      autoReplyIncoming: true,
+      replyTrigger: 'allIncoming',
+      stableDelayMs: 1200,
+      minChars: 4,
+    });
+
+    s.applyPatch({
+      audio: { micInputMode: 'phone-speaker' },
+      autoConversation: {
+        autoReplyIncoming: false,
+        replyTrigger: 'questionsOnly',
+        stableDelayMs: 1200,
+      },
+    });
+
+    const reloaded = new SettingsStore(file, fakeCipher);
+    expect(reloaded.getPublic().audio.micInputMode).toBe('phone-speaker');
+    expect(reloaded.getPublic().autoConversation).toEqual({
+      autoTranslateIncoming: true,
+      autoReplyIncoming: false,
+      replyTrigger: 'questionsOnly',
+      stableDelayMs: 1200,
+      minChars: 4,
+    });
+  });
+
+  it('fills automatic conversation defaults for older settings files', () => {
+    writeFileSync(file, JSON.stringify({
+      version: 2,
+      onboarding: { schemaVersion: 1, completed: true },
+      audio: { micEnabled: false },
+    }), 'utf8');
+    const s = new SettingsStore(file, fakeCipher);
+    expect(s.getPublic().audio.micInputMode).toBe('self');
+    expect(s.getPublic().autoConversation.autoTranslateIncoming).toBe(true);
+    expect(s.getPublic().autoConversation.autoReplyIncoming).toBe(true);
+  });
+
   it('defaults asr backend to local streaming Fun-ASR-Nano', () => {
     const s = new SettingsStore(file, fakeCipher);
     expect(s.data.asr.backend).toBe('local-realtime');
@@ -291,7 +334,7 @@ describe('migrateSettingsV1ToV2 (pure)', () => {
     // untouched; the new ones arrive with their OFF defaults, so upgrading can
     // never silently register an existing profile for auto-start.
     expect(v2.ui).toEqual({ ...V1_FILE.ui, autoLaunch: false, trayNoticeShown: false });
-    expect(v2.audio).toEqual(V1_FILE.audio);
+    expect(v2.audio).toEqual({ ...V1_FILE.audio, micInputMode: 'self' });
   });
 
   it('grandfathers existing users past the wizard', () => {

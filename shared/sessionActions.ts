@@ -10,6 +10,7 @@ export function sessionText(session: StoredSession): string {
   lines.push('', 'Answers', '-------');
   for (const turn of session.turns) {
     lines.push('', `Q: ${turn.label}`, `A: ${turn.text}`);
+    if (turn.replyTranslation) lines.push(`A translation: ${turn.replyTranslation}`);
     if (turn.status !== 'done') lines.push(`[${turn.status}]`);
   }
   return lines.join('\n') + '\n';

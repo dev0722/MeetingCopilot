@@ -57,7 +57,14 @@ function settings(over: Partial<PublicSettings> = {}): PublicSettings {
       autoLaunch: false,
       trayNoticeShown: false,
     },
-    audio: { micEnabled: false },
+    audio: { micEnabled: false, micInputMode: 'self' },
+    autoConversation: {
+      autoTranslateIncoming: true,
+      autoReplyIncoming: true,
+      replyTrigger: 'allIncoming',
+      stableDelayMs: 1200,
+      minChars: 4,
+    },
     ...over,
   };
 }

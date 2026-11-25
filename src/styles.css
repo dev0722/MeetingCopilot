@@ -573,6 +573,17 @@ body {
   color: var(--text-body);
 }
 
+.turn-translation {
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px dashed var(--trans-border);
+  color: var(--trans-text);
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  user-select: text;
+}
+
 .answer-error {
   color: var(--error-text);
 }

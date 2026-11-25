@@ -1,8 +1,15 @@
+import type { MicInputMode } from './protocol';
+
 export type CaptureKind = 'loopback' | 'input';
 
 /** Electron's display-media loopback token is currently Windows-only. */
 export function captureKindForPlatform(platform: string): CaptureKind {
   return platform === 'win32' ? 'loopback' : 'input';
+}
+
+/** The microphone is either the user's own channel or incoming phone audio. */
+export function microphoneChannel(mode: MicInputMode | undefined): 'me' | 'them' {
+  return mode === 'phone-speaker' ? 'them' : 'me';
 }
 
 /** Defaults apply only to newly created settings; saved user choices win. */

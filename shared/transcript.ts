@@ -10,7 +10,7 @@ export interface TranscriptSegment {
   lang?: string;
   /** 'them' (system audio) | 'me' (microphone); default 'them' */
   speaker?: 'them' | 'me';
-  /** inline Chinese translation (off-session, user-triggered) */
+  /** inline Chinese translation (off-session, manual or automatic) */
   translation?: string;
   translating?: boolean;
   /** Date.now() of speech start/end (from ASR timings) */

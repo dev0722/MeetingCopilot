@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   captureKindForPlatform,
   defaultHotkeysForPlatform,
+  microphoneChannel,
   whisperExecutionProvidersForPlatform,
 } from '../shared/platform';
 
@@ -21,6 +22,12 @@ describe('platform defaults', () => {
     expect(captureKindForPlatform('win32')).toBe('loopback');
     expect(captureKindForPlatform('darwin')).toBe('input');
     expect(captureKindForPlatform('linux')).toBe('input');
+  });
+
+  it('routes phone-speaker microphone samples onto the incoming channel', () => {
+    expect(microphoneChannel('self')).toBe('me');
+    expect(microphoneChannel(undefined)).toBe('me');
+    expect(microphoneChannel('phone-speaker')).toBe('them');
   });
 
   it('never attempts the Windows DirectML provider on macOS', () => {

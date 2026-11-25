@@ -3,7 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 import type {
   AnswerLang,
   AsrLanguage,
+  AutoReplyTrigger,
   FontScale,
+  MicInputMode,
   ProviderSlot,
   ProviderTestResult,
   ProviderVerification,
@@ -169,6 +171,16 @@ export function SettingsPanel({
   const [uiLang, setUiLang] = useState<UiLang>(settings.ui.lang);
   const [themDeviceId, setThemDeviceId] = useState(settings.audio.themDeviceId ?? '');
   const [micDeviceId, setMicDeviceId] = useState(settings.audio.micDeviceId ?? '');
+  const [micInputMode, setMicInputMode] = useState<MicInputMode>(settings.audio.micInputMode);
+  const [autoTranslateIncoming, setAutoTranslateIncoming] = useState(
+    settings.autoConversation.autoTranslateIncoming,
+  );
+  const [autoReplyIncoming, setAutoReplyIncoming] = useState(
+    settings.autoConversation.autoReplyIncoming,
+  );
+  const [autoReplyTrigger, setAutoReplyTrigger] = useState<AutoReplyTrigger>(
+    settings.autoConversation.replyTrigger,
+  );
   const [devices, setDevices] = useState<{ deviceId: string; label: string }[]>([]);
   const [saving, setSaving] = useState(false);
   /** weak-crypto confirmation is pending; nothing has been sent to main yet */
@@ -325,6 +337,12 @@ export function SettingsPanel({
         audio: {
           themDeviceId: themDeviceId || undefined,
           micDeviceId: micDeviceId || undefined,
+          micInputMode,
+        },
+        autoConversation: {
+          autoTranslateIncoming,
+          autoReplyIncoming,
+          replyTrigger: autoReplyTrigger,
         },
       });
       llmKey.reset();
@@ -703,7 +721,47 @@ export function SettingsPanel({
           {deviceOptions}
         </select>
       </div>
+      <div className="settings-row">
+        <label>{t.settings.micInputMode}</label>
+        <select value={micInputMode} onChange={(e) => setMicInputMode(e.target.value as MicInputMode)}>
+          <option value="self">{t.settings.micInputSelf}</option>
+          <option value="phone-speaker">{t.settings.micInputPhone}</option>
+        </select>
+      </div>
       <div className="settings-hint">{t.settings.otherHint}</div>
+
+      <div className="settings-section">{t.settings.autoConversationSection}</div>
+      <div className="settings-row">
+        <label>{t.settings.autoTranslateIncoming}</label>
+        <select
+          value={autoTranslateIncoming ? 'on' : 'off'}
+          onChange={(e) => setAutoTranslateIncoming(e.target.value === 'on')}
+        >
+          <option value="on">{t.settings.autoLaunchOn}</option>
+          <option value="off">{t.settings.autoLaunchOff}</option>
+        </select>
+      </div>
+      <div className="settings-row">
+        <label>{t.settings.autoReplyIncoming}</label>
+        <select
+          value={autoReplyIncoming ? 'on' : 'off'}
+          onChange={(e) => setAutoReplyIncoming(e.target.value === 'on')}
+        >
+          <option value="on">{t.settings.autoLaunchOn}</option>
+          <option value="off">{t.settings.autoLaunchOff}</option>
+        </select>
+      </div>
+      <div className="settings-row">
+        <label>{t.settings.autoReplyTrigger}</label>
+        <select
+          value={autoReplyTrigger}
+          onChange={(e) => setAutoReplyTrigger(e.target.value as AutoReplyTrigger)}
+        >
+          <option value="allIncoming">{t.settings.autoReplyAll}</option>
+          <option value="questionsOnly">{t.settings.autoReplyQuestions}</option>
+        </select>
+      </div>
+      <div className="settings-hint">{t.settings.autoConversationHint}</div>
 
       {onOpenHelp && (
         <div className="settings-row">
